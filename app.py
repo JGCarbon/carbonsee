@@ -18,7 +18,7 @@ st.header("🔬 TCT Lens")
 st.info("✅ Verified - Geotag OK - AWD detected")
 
 st.header("🤖 Palayan AI")
-q = st.text_input("Ask Palayan AI:",When is the best time to plant rice for maximum Carbon credits?
+q = st.text_input("Ask Palayan AI:", placeholder="When is the best time to plant rice for maximum Carbon credits?")
 if st.button("Ask"):
     st.write("Answer: Plant late May-mid June. Use AWD for +50% credits on CarbonSee!")
 
