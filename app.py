@@ -138,15 +138,40 @@ with tab_pro:
             st.success(f"✅ {len(tct_files)} TCTs uploaded successfully!")
             st.info("🟢 **Verified - Geotag OK - AWD detected** (Demo Logic)")
             
-    with ai_tab:
+     with ai_tab:
         st.write("Scan rice leaves for disease or ask agricultural questions.")
         leaf = st.file_uploader("Upload Rice Leaf Image", type=["jpg", "png"])
-        if leaf:
+        
+        if leaf is not None:
             st.image(leaf, width=200)
-            st.success("✅ Leaf scanned - No disease detected (Demo Logic)")
             
-        st.chat_input("Ask Palayan AI: When is the best time to plant?")
-        st.caption("*(Chat interface coming soon)*")
+            if st.button("🔍 Run Palayan AI Scan"):
+                with st.spinner("Analyzing leaf..."):
+                    try:
+                        import base64
+                        import openai
+                        
+                        # Convert image to base64
+                        image_bytes = leaf.read()
+                        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+                        
+                        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                        
+                        prompt = "You are Palayan AI, an expert agricultural AI. Analyze this rice leaf. Identify diseases, pests, or deficiencies. Rate severity 1-10. Give a short action plan for the farmer."
+                        
+                        response = client.chat.completions.create(
+                            model="gpt-4o",
+                            messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
+                            max_tokens=300
+                        )
+                        st.success("✅ Analysis Complete!")
+                        st.markdown(response.choices[0].message.content)
+                    except Exception as e:
+                        st.error(f"Error: {e}")   
+    
+            
+        
+    
 
 st.divider()
 
