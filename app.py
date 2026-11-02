@@ -153,7 +153,7 @@ st.divider()
 # --- FOOTER / UPGRADE ---
 col_up1, col_up2, col_up3 = st.columns([1, 2, 1])
 with col_up2:
-st.link_button("🔓 Unlock Pro (P499/mo) via GCash"    https://forms.gle/MMsz9Bjj8t7pBhTGA use_container_width=True)
+    st.link_button("🔓 Unlock Pro (P499/mo) via GCash", "https://forms.gle/MMsz9Bj8t7pBhTGA", use_container_width=True)
     st.caption("Once live, scan QR to download PDF Report & verify 10 TCTs/month.")
 
 st.markdown("<p style='text-align: center; color: gray; font-size: 12px;'>Palayan AI Labs • Division of JG Climate Law</p>", unsafe_allow_html=True)
