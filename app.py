@@ -1,44 +1,20 @@
 import streamlit as st
+import openai
+import base64
 
-# --- PAGE CONFIGURATION (Must be first) ---
+# --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="CarbonSee.app", page_icon="🌱", layout="wide")
 
 # --- CUSTOM CSS FOR NAVY & GOLD BRANDING ---
 st.markdown("""
 <style>
-    /* Main background */
-    .stApp {
-        background-color: #0a1931;
-        color: #ffffff;
-    }
-    /* Headers in Gold */
-    h1, h2, h3 {
-        color: #d4af37 !important;
-    }
-    /* Metrics (The big numbers) */
-    div[data-testid="stMetricValue"] {
-        color: #d4af37;
-        font-size: 2rem;
-    }
-    div[data-testid="stMetricLabel"] {
-        color: #ffffff;
-    }
-    /* Buttons */
-    .stButton>button {
-        background-color: #d4af37;
-        color: #0a1931;
-        font-weight: bold;
-        border-radius: 8px;
-    }
-    .stButton>button:hover {
-        background-color: #b8962e;
-        color: #ffffff;
-    }
-    /* Tabs */
-    .stTabs [data-baseweb="tab"] {
-        color: #d4af37;
-        font-weight: bold;
-    }
+    .stApp { background-color: #0a1931; color: #ffffff; }
+    h1, h2, h3 { color: #d4af37 !important; }
+    div[data-testid="stMetricValue"] { color: #d4af37; font-size: 2rem; }
+    div[data-testid="stMetricLabel"] { color: #ffffff; }
+    .stButton>button { background-color: #d4af37; color: #0a1931; font-weight: bold; border-radius: 8px; }
+    .stButton>button:hover { background-color: #b8962e; color: #ffffff; }
+    .stTabs [data-baseweb="tab"] { color: #d4af37; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -73,12 +49,11 @@ with tab_carbon:
         calculate_carbon = st.button("Calculate Carbon Value", use_container_width=True)
 
     if calculate_carbon:
-        # Logic: Base is 2.5 credits/ha. AWD adds a 20% premium (conservative)
         base_credits = 2.5
         multiplier = 1.2 if "AWD" in method else 1.0
         
         annual_credits = area * base_credits * multiplier
-        price_per_credit_php = 1200 # Approx $20 USD
+        price_per_credit_php = 1200
         
         annual_value_php = annual_credits * price_per_credit_php
         total_30yr_value = annual_value_php * 30
@@ -90,14 +65,18 @@ with tab_carbon:
             st.metric("Annual Gross Value", f"₱{annual_value_php:,.2f}")
         with res_col2:
             st.metric("30-Year Total Projection", f"₱{total_30yr_value:,.0f}", "Conservative Estimate")
-            st.info("💡 *Note: This is a baseline estimate. Premium JCM/Verra markets can yield higher rates.*")
+            st.info("💡 *Note: This is a baseline estimate.*")
+        
+        # Download Button
+        report_text = f"CARBONSEE REPORT\nArea: {area} ha\nMethod: {method}\n30-Yr Value: PHP {total_30yr_value:,.0f}"
+        st.download_button("📥 Download Report (TXT)", data=report_text, file_name="Carbonsee_Report.txt")
 
 # ==========================================
 # TAB 2: SOLAR LEASE CALCULATOR
 # ==========================================
 with tab_solar:
     st.subheader("Solar Lease Calculator")
-    st.write("Calculate guaranteed baseline revenue from leasing land to solar developers.")
+    st.write("Calculate guaranteed baseline revenue from leasing land.")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -120,44 +99,36 @@ with tab_solar:
         with res_col2:
             st.metric("Upfront Cash", f"₱{upfront:,.0f}", "Direct to Lessor")
             st.metric("Total Guaranteed Baseline", f"₱{total_baseline:,.0f}")
-            
-        st.success("💡 *Plus 7-10% Royalty on Gross Revenue (NGCP Meter)*")
 
 # ==========================================
-# TAB 3: PRO TOOLS (TCT & PALAYAN)
+# TAB 3: PRO TOOLS
 # ==========================================
 with tab_pro:
     st.subheader("Pro Tools Dashboard")
-    
     tct_tab, ai_tab = st.tabs(["📄 TCT Lens", "🌾 Palayan AI"])
     
     with tct_tab:
-        st.write("Upload TCT to verify boundaries and encumbrances.")
-        tct_files = st.file_uploader("Upload TCT PDFs or Images", accept_multiple_files=True)
+        st.write("Upload TCT to verify boundaries.")
+        tct_files = st.file_uploader("Upload TCT PDFs", accept_multiple_files=True)
         if tct_files:
-            st.success(f"✅ {len(tct_files)} TCTs uploaded successfully!")
-            st.info("🟢 **Verified - Geotag OK - AWD detected** (Demo Logic)")
+            st.success(f"✅ {len(tct_files)} TCTs uploaded!")
+            st.info("🟢 **Verified - Geotag OK** (Demo)")
             
-      with ai_tab:
-        st.write("Scan rice leaves for disease or ask agricultural questions.")
+    with ai_tab:
+        st.write("Scan rice leaves for disease.")
         leaf = st.file_uploader("Upload Rice Leaf Image", type=["jpg", "png"])
         
         if leaf is not None:
             st.image(leaf, width=200)
-            
             if st.button("🔍 Run Palayan AI Scan"):
                 with st.spinner("Analyzing leaf..."):
                     try:
-                        import base64
-                        import openai
-                        
-                        # Convert image to base64
                         image_bytes = leaf.read()
                         base64_image = base64.b64encode(image_bytes).decode('utf-8')
                         
                         client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
                         
-                        prompt = "You are Palayan AI, an expert agricultural AI. Analyze this rice leaf. Identify diseases, pests, or deficiencies. Rate severity 1-10. Give a short action plan for the farmer."
+                        prompt = "You are Palayan AI. Analyze this rice leaf. Identify diseases or pests. Rate severity 1-10. Give a short action plan."
                         
                         response = client.chat.completions.create(
                             model="gpt-4o",
@@ -168,44 +139,10 @@ with tab_pro:
                         st.markdown(response.choices[0].message.content)
                     except Exception as e:
                         st.error(f"Error: {e}")
-        
-        if leaf is not None:
-            st.image(leaf, width=200)
-            
-            if st.button("🔍 Run Palayan AI Scan"):
-                with st.spinner("Analyzing leaf..."):
-                    try:
-                        import base64
-                        import openai
-                        
-                        # Convert image to base64
-                        image_bytes = leaf.read()
-                        base64_image = base64.b64encode(image_bytes).decode('utf-8')
-                        
-                        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                        
-                        prompt = "You are Palayan AI, an expert agricultural AI. Analyze this rice leaf. Identify diseases, pests, or deficiencies. Rate severity 1-10. Give a short action plan for the farmer."
-                        
-                        response = client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
-                            max_tokens=300
-                        )
-                        st.success("✅ Analysis Complete!")
-                        st.markdown(response.choices[0].message.content)
-                    except Exception as e:
-                        st.error(f"Error: {e}")   
-    
-            
-        
-    
 
 st.divider()
 
-# --- FOOTER / UPGRADE ---
+# --- FOOTER ---
 col_up1, col_up2, col_up3 = st.columns([1, 2, 1])
 with col_up2:
     st.link_button("🔓 Unlock Pro (P499/mo) via GCash", "https://forms.gle/MMsz9Bj8t7pBhTGA", use_container_width=True)
-    st.caption("Once live, scan QR to download PDF Report & verify 10 TCTs/month.")
-
-st.markdown("<p style='text-align: center; color: gray; font-size: 12px;'>Palayan AI Labs • Division of JG Climate Law</p>", unsafe_allow_html=True)
