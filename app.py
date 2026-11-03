@@ -98,6 +98,21 @@ with tab_carbon:
             report_text = f"CARBONSEE REPORT\nArea: {area} ha\nMethod: {method}\n30-Yr Value: PHP {total_30yr_value:,.0f}"
             st.download_button("📥 Download Official PDF Report", data=report_text, file_name="Carbonsee_Report.txt", mime="text/plain")
         else:
+
+                    # --- NEW: LEAD GENERATION BUTTONS ---
+        st.divider()
+        st.markdown("### 🚀 Next Steps")
+        col_btn1, col_btn2 = st.columns(2)
+        
+        with col_btn1:
+            # REPLACE WITH YOUR NEW GOOGLE FORM LINK FOR LAND SUBMISSIONS
+            st.link_button("🤝 Submit Land for Aggregation", "https://forms.gle/YOUR_NEW_LAND_FORM_LINK", use_container_width=True)
+            
+        with col_btn2:
+            # REPLACE WITH YOUR VIBER CHAT LINK
+            st.link_button("💬 Talk to Atty. Grace", "https://viber.me/your-viber-link", use_container_width=True)
+            
+        st.info("💡 **Tip:** Want a bankable report to show to a solar developer? Upgrade to Pro to download the official PDF.")
             st.warning("🔒 **Upgrade to Pro** to download the official PDF Report for your bank/developer.")
 
 # ==========================================
