@@ -106,9 +106,11 @@ with tab_carbon:
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
+            # Replace with your actual Land Submission Google Form
             st.link_button("🤝 Submit Land for Aggregation", "https://forms.gle/YOUR_NEW_LAND_FORM_LINK", use_container_width=True)
             
         with col_btn2:
+            # Replace with your actual Viber Chat Link
             st.link_button("💬 Talk to Atty. Grace", "https://viber.me/YOUR_VIBER_LINK", use_container_width=True)
             
         st.info("💡 **Tip:** Want a bankable report to show to a solar developer? Upgrade to Pro to download the official PDF.")
@@ -153,7 +155,7 @@ with tab_pro:
     else:
         tct_tab, ai_tab = st.tabs(["📄 TCT Lens", "🌾 Palayan AI"])
         
-        # --- TCT LENS (WITH CARBON SYNERGY) ---
+        # --- TCT LENS (WITH MANUAL FALLBACK) ---
         with tct_tab:
             st.write("Upload TCT to extract legal data and calculate Carbon Potential.")
             tct_file = st.file_uploader("Upload TCT Image (JPG/PNG)", type=["jpg", "png"])
@@ -185,25 +187,33 @@ with tab_pro:
                             st.success("✅ Analysis Complete!")
                             st.markdown(result_text)
                             
-                            # Extract area and calculate carbon
+                            # Extract area
                             area_match = re.search(r'\[AREA_HA:\s*([\d\.]+)\]', result_text)
+                            extracted_area = float(area_match.group(1)) if area_match else 0.0
                             
-                            if area_match:
-                                extracted_area = float(area_match.group(1))
-                                if extracted_area > 0:
-                                    base_credits = 2.5
-                                    price_php = 1200
-                                    annual_val = extracted_area * base_credits * price_php
-                                    total_30yr = annual_val * 30
-                                    
-                                    st.divider()
-                                    st.info(f"🌱 **Carbon Potential Found!** Based on the title area of **{extracted_area} hectares**, this land could generate an estimated **₱{total_30yr:,.0f}** over 30 years in carbon credits.")
-                                    
-                                    if not st.session_state.is_pro:
-                                        st.warning("🔒 Upgrade to Pro to download the full legal and financial report.")
-                                    else:
-                                        report_text = f"CARBONSEE TCT REPORT\nArea: {extracted_area} ha\n30-Yr Carbon Value: PHP {total_30yr:,.0f}"
-                                        st.download_button("📥 Download Full TCT & Carbon Report", data=report_text, file_name="TCT_Carbon_Report.txt")
+                            st.divider()
+                            
+                            # --- MANUAL FALLBACK LOGIC ---
+                            final_area = extracted_area
+                            
+                            if extracted_area == 0:
+                                st.warning("⚠️ **AI could not read the land area clearly.** Please type the area manually below to calculate the carbon potential.")
+                                manual_area = st.number_input("Enter Area (Hectares) manually:", min_value=0.1, value=1.0, step=0.1)
+                                final_area = manual_area
+                            
+                            if final_area > 0:
+                                base_credits = 2.5
+                                price_php = 1200
+                                annual_val = final_area * base_credits * price_php
+                                total_30yr = annual_val * 30
+                                
+                                st.info(f"🌱 **Carbon Potential Found!** Based on an area of **{final_area} hectares**, this land could generate an estimated **₱{total_30yr:,.0f}** over 30 years in carbon credits.")
+                                
+                                if not st.session_state.is_pro:
+                                    st.warning("🔒 Upgrade to Pro to download the full legal and financial report.")
+                                else:
+                                    report_text = f"CARBONSEE TCT REPORT\nArea: {final_area} ha\n30-Yr Carbon Value: PHP {total_30yr:,.0f}"
+                                    st.download_button("📥 Download Full TCT & Carbon Report", data=report_text, file_name="TCT_Carbon_Report.txt")
                                     
                         except Exception as e:
                             st.error(f"Error: {e}")
