@@ -177,31 +177,97 @@ with tab_pro:
                             st.error(f"Error: {e}")
                             
         # --- PALAYAN AI ---
+        
+                    # --- PALAYAN AI v2.0 ---
         with ai_tab:
-            st.write("Scan rice leaves for disease. (Please upload a close-up photo of a single leaf for accurate results).")
-            leaf = st.file_uploader("Upload Rice Leaf Image", type=["jpg", "png"])
+            st.info("⚠️ **PAALALA:** Para sa tumpak na resulta, mag-upload ng malinaw at malapit na litrato (close-up). Iwasan ang pag-upload ng malawak na tanawin ng bukid.")
+            
+            # The Dropdown Feature
+            analysis_type = st.selectbox(
+                "Ano ang gusto mong i-check? (What do you want to check?)",
+                [
+                    "🌾 Sakit at Peste sa Dahon (Leaf Disease & Pest)",
+                    "🍚 Handa na ba Anihin? (Harvest Readiness - Grains)",
+                    "🐛 Anong Insekto Ito? (Insect Identification)"
+                ]
+            )
+            
+            leaf = st.file_uploader("Upload Image here (JPG/PNG)", type=["jpg", "png"])
             
             if leaf is not None:
-                st.image(leaf, width=300)
+                st.image(leaf, width=300, caption="Uploaded Image")
+                
                 if st.button("🔍 Run Palayan AI Scan"):
-                    with st.spinner("Analyzing leaf..."):
+                    with st.spinner("Sinusuri ng Palayan AI..."):
                         try:
                             image_bytes = leaf.read()
                             base64_image = base64.b64encode(image_bytes).decode('utf-8')
                             
                             client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
                             
-                            prompt = "You are Palayan AI, an expert agricultural AI. Analyze this rice leaf. Identify diseases or pests. Rate severity 1-10. Give a short action plan."
-                            
+                            # Dynamic Prompts based on the dropdown
+                            if "Sakit" in analysis_type:
+                                prompt = """
+                                You are Palayan AI, an expert Filipino agriculturist. Look closely at this single leaf. 
+                                Identify the specific disease (e.g., Rice Blast, Bacterial Leaf Blight) or pest. 
+                                Rate severity 1-10. 
+                                Provide a simple, actionable treatment plan using locally available materials (organic or chemical). 
+                                Speak directly to the farmer in a mix of Tagalog and English.
+                                """
+                            elif "Harvest" in analysis_type:
+                                prompt = """
+                                You are Palayan AI. Look at the rice grains in this image. 
+                                Determine the harvest readiness. Are the grains in the milky, dough, or mature stage? 
+                                Are they golden and ready to harvest, or still too green? 
+                                Give a clear recommendation: "Hintayin pa ng X days" or "Pwede nang anihin".
+                                Speak directly to the farmer in a mix of Tagalog and English.
+                                """
+                            else:
+                                prompt = """
+                                You are Palayan AI. Identify the insect in this image. 
+                                Tell the farmer if it is a pest (harmful) or a beneficial insect. 
+                                If it's a pest, provide a safe way to eliminate it.
+                                Speak directly to the farmer in a mix of Tagalog and English.
+                                """
+
                             response = client.chat.completions.create(
                                 model="gpt-4o",
                                 messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
-                                max_tokens=300
+                                max_tokens=400
                             )
                             st.success("✅ Analysis Complete!")
                             st.markdown(response.choices[0].message.content)
                         except Exception as e:
                             st.error(f"Error: {e}")
+            
+            st.divider()
+            
+            # Text Advisory for Planting
+            st.write("**Ask Palayan AI about planting schedules:**")
+            question = st.text_input("Halimbawa: Kailan magandang magtanim ng palay ngayong tag-ulan?")
+            if st.button("Ask Palayan AI"):
+                if question:
+                    with st.spinner("Nag-iisip..."):
+                        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                        response = client.chat.completions.create(
+                            model="gpt-4o",
+                            messages=[{"role": "user", "content": [{"type": "text", "text": f"You are Palayan AI. Answer this farmer's question clearly and briefly in Taglish (Tagalog/English): {question}"}]}],
+                            max_tokens=300
+                        )
+                        st.info(response.choices[0].message.content)
+            
+            
+            
+                
+                
+                
+                            
+                            
+                            
+                            
+                                
+                    
+                        
 
 st.divider()
 st.markdown("<p style='text-align: center; color: gray; font-size: 12px;'>Palayan AI Labs • Division of JG Climate Law</p>", unsafe_allow_html=True)
