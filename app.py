@@ -20,13 +20,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- PRO LOGIC ---
-# Initialize session state for Pro access
 if 'is_pro' not in st.session_state:
     st.session_state.is_pro = False
 
 # Sidebar for Pro Login
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3302/3302758.png", width=100) # A placeholder leaf icon
+    st.image("https://cdn-icons-png.flaticon.com/512/3302/3302758.png", width=100) 
     st.header("Pro Access")
     if not st.session_state.is_pro:
         pro_code = st.text_input("Enter Pro Access Code", type="password")
@@ -81,10 +80,8 @@ with tab_carbon:
     if calculate_carbon:
         base_credits = 2.5
         multiplier = 1.2 if "AWD" in method else 1.0
-        
         annual_credits = area * base_credits * multiplier
         price_per_credit_php = 1200
-        
         annual_value_php = annual_credits * price_per_credit_php
         total_30yr_value = annual_value_php * 30
         
@@ -97,33 +94,9 @@ with tab_carbon:
             st.metric("30-Year Total Projection", f"₱{total_30yr_value:,.0f}", "Conservative Estimate")
             st.info("💡 *Note: This is a baseline estimate.*")
         
-        # --- PRO FEATURE: DOWNLOAD REPORT ---
         if st.session_state.is_pro:
-            report_text = f"""
-            CARBONSEE.APP - OFFICIAL PROJECTION REPORT
-            -------------------------------------------
-            Prepared by: JG Climate Law and Palayan AI Labs
-            Date: {st.session_state.get('date', 'Today')}
-            
-            PROJECT DETAILS:
-            Area: {area} hectares
-            Farming Method: {method}
-            
-            FINANCIAL PROJECTIONS:
-            Annual Carbon Credits: {annual_credits:,.2f} tCO2e
-            Annual Gross Value: PHP {annual_value_php:,.2f}
-            30-Year Total Projection: PHP {total_30yr_value:,.0f}
-            
-            *This is a conservative baseline estimate for bankability.
-            *For official DENR submission and Verra registration, contact Atty. Grace Palayan.
-            """
-            st.download_button(
-                label="📥 Download Official PDF Report",
-                data=report_text,
-                file_name=f"Carbonsee_Report_{area}ha.txt", # Text format for now, easy to open
-                mime="text/plain",
-                type="primary"
-            )
+            report_text = f"CARBONSEE REPORT\nArea: {area} ha\nMethod: {method}\n30-Yr Value: PHP {total_30yr_value:,.0f}"
+            st.download_button("📥 Download Official PDF Report", data=report_text, file_name="Carbonsee_Report.txt", mime="text/plain")
         else:
             st.warning("🔒 **Upgrade to Pro** to download the official PDF Report for your bank/developer.")
 
@@ -133,7 +106,6 @@ with tab_carbon:
 with tab_solar:
     st.subheader("Solar Lease Calculator")
     st.write("Calculate guaranteed baseline revenue from leasing land.")
-    
     col1, col2 = st.columns(2)
     with col1:
         solar_ha = st.number_input("Lease Area (Hectares)", min_value=1.0, value=12.0, step=1.0)
@@ -157,7 +129,7 @@ with tab_solar:
             st.metric("Total Guaranteed Baseline", f"₱{total_baseline:,.0f}")
 
 # ==========================================
-# TAB 3: PRO TOOLS
+# TAB 3: PRO TOOLS (NOW WITH REAL AI TCT LENS)
 # ==========================================
 with tab_pro:
     st.subheader("Pro Tools Dashboard")
@@ -167,19 +139,50 @@ with tab_pro:
     else:
         tct_tab, ai_tab = st.tabs(["📄 TCT Lens", "🌾 Palayan AI"])
         
+        # --- REAL TCT LENS AI ---
         with tct_tab:
-            st.write("Upload TCT to verify boundaries.")
-            tct_files = st.file_uploader("Upload TCT PDFs", accept_multiple_files=True)
-            if tct_files:
-                st.success(f"✅ {len(tct_files)} TCTs uploaded!")
-                st.info("🟢 **Verified - Geotag OK** (Demo)")
+            st.write("Upload TCT to extract owner, title number, area, and encumbrances.")
+            tct_file = st.file_uploader("Upload TCT Image (JPG/PNG)", type=["jpg", "png"])
+            
+            if tct_file is not None:
+                st.image(tct_file, width=300, caption="Uploaded TCT")
                 
+                if st.button("🔍 Run TCT Lens Analysis"):
+                    with st.spinner("Reading Title..."):
+                        try:
+                            image_bytes = tct_file.read()
+                            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+                            
+                            client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                            
+                            prompt = """
+                            You are a meticulous Philippine Legal Engineer. Analyze this Transfer Certificate of Title (TCT).
+                            Extract the following:
+                            1. TCT Number
+                            2. Registered Owner(s)
+                            3. Total Area
+                            4. Location (Lot, Barangay, Municipality)
+                            5. Encumbrances / Annotations (List any liens, mortgages, or claims)
+                            If a field is blurry or missing, state "Not clearly readable". Use Markdown to format beautifully.
+                            """
+                            
+                            response = client.chat.completions.create(
+                                model="gpt-4o",
+                                messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
+                                max_tokens=500
+                            )
+                            st.success("✅ Analysis Complete!")
+                            st.markdown(response.choices[0].message.content)
+                        except Exception as e:
+                            st.error(f"Error: {e}")
+                            
+        # --- PALAYAN AI ---
         with ai_tab:
-            st.write("Scan rice leaves for disease.")
+            st.write("Scan rice leaves for disease. (Please upload a close-up photo of a single leaf for accurate results).")
             leaf = st.file_uploader("Upload Rice Leaf Image", type=["jpg", "png"])
             
             if leaf is not None:
-                st.image(leaf, width=200)
+                st.image(leaf, width=300)
                 if st.button("🔍 Run Palayan AI Scan"):
                     with st.spinner("Analyzing leaf..."):
                         try:
@@ -188,7 +191,7 @@ with tab_pro:
                             
                             client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
                             
-                            prompt = "You are Palayan AI. Analyze this rice leaf. Identify diseases or pests. Rate severity 1-10. Give a short action plan."
+                            prompt = "You are Palayan AI, an expert agricultural AI. Analyze this rice leaf. Identify diseases or pests. Rate severity 1-10. Give a short action plan."
                             
                             response = client.chat.completions.create(
                                 model="gpt-4o",
@@ -201,6 +204,4 @@ with tab_pro:
                             st.error(f"Error: {e}")
 
 st.divider()
-
-# --- FOOTER ---
 st.markdown("<p style='text-align: center; color: gray; font-size: 12px;'>Palayan AI Labs • Division of JG Climate Law</p>", unsafe_allow_html=True)
