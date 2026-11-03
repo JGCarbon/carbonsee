@@ -1,6 +1,7 @@
 import streamlit as st
 import openai
 import base64
+import io
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="CarbonSee.app", page_icon="🌱", layout="wide")
@@ -17,6 +18,35 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] { color: #d4af37; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
+
+# --- PRO LOGIC ---
+# Initialize session state for Pro access
+if 'is_pro' not in st.session_state:
+    st.session_state.is_pro = False
+
+# Sidebar for Pro Login
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/3302/3302758.png", width=100) # A placeholder leaf icon
+    st.header("Pro Access")
+    if not st.session_state.is_pro:
+        pro_code = st.text_input("Enter Pro Access Code", type="password")
+        if st.button("Unlock Pro"):
+            if pro_code == "JGPRO2026":
+                st.session_state.is_pro = True
+                st.success("Pro Unlocked!")
+                st.rerun()
+            else:
+                st.error("Invalid Code. Pay via GCash below to get your code.")
+        
+        st.markdown("---")
+        st.write("**Upgrade to Pro (P499/mo)**")
+        st.write("Get unlimited PDF reports, TCT checks, and 50 AI leaf scans.")
+        st.link_button("🔓 Pay via GCash", "https://forms.gle/MMsz9Bj8t7pBhTGA", use_container_width=True)
+    else:
+        st.success("🌟 Pro Version Active")
+        if st.button("Log Out"):
+            st.session_state.is_pro = False
+            st.rerun()
 
 # --- HEADER ---
 st.title("🌱 CARBONSEE.app")
@@ -67,9 +97,35 @@ with tab_carbon:
             st.metric("30-Year Total Projection", f"₱{total_30yr_value:,.0f}", "Conservative Estimate")
             st.info("💡 *Note: This is a baseline estimate.*")
         
-        # Download Button
-        report_text = f"CARBONSEE REPORT\nArea: {area} ha\nMethod: {method}\n30-Yr Value: PHP {total_30yr_value:,.0f}"
-        st.download_button("📥 Download Report (TXT)", data=report_text, file_name="Carbonsee_Report.txt")
+        # --- PRO FEATURE: DOWNLOAD REPORT ---
+        if st.session_state.is_pro:
+            report_text = f"""
+            CARBONSEE.APP - OFFICIAL PROJECTION REPORT
+            -------------------------------------------
+            Prepared by: JG Climate Law and Palayan AI Labs
+            Date: {st.session_state.get('date', 'Today')}
+            
+            PROJECT DETAILS:
+            Area: {area} hectares
+            Farming Method: {method}
+            
+            FINANCIAL PROJECTIONS:
+            Annual Carbon Credits: {annual_credits:,.2f} tCO2e
+            Annual Gross Value: PHP {annual_value_php:,.2f}
+            30-Year Total Projection: PHP {total_30yr_value:,.0f}
+            
+            *This is a conservative baseline estimate for bankability.
+            *For official DENR submission and Verra registration, contact Atty. Grace Palayan.
+            """
+            st.download_button(
+                label="📥 Download Official PDF Report",
+                data=report_text,
+                file_name=f"Carbonsee_Report_{area}ha.txt", # Text format for now, easy to open
+                mime="text/plain",
+                type="primary"
+            )
+        else:
+            st.warning("🔒 **Upgrade to Pro** to download the official PDF Report for your bank/developer.")
 
 # ==========================================
 # TAB 2: SOLAR LEASE CALCULATOR
@@ -105,44 +161,46 @@ with tab_solar:
 # ==========================================
 with tab_pro:
     st.subheader("Pro Tools Dashboard")
-    tct_tab, ai_tab = st.tabs(["📄 TCT Lens", "🌾 Palayan AI"])
     
-    with tct_tab:
-        st.write("Upload TCT to verify boundaries.")
-        tct_files = st.file_uploader("Upload TCT PDFs", accept_multiple_files=True)
-        if tct_files:
-            st.success(f"✅ {len(tct_files)} TCTs uploaded!")
-            st.info("🟢 **Verified - Geotag OK** (Demo)")
-            
-    with ai_tab:
-        st.write("Scan rice leaves for disease.")
-        leaf = st.file_uploader("Upload Rice Leaf Image", type=["jpg", "png"])
+    if not st.session_state.is_pro:
+        st.warning("🔒 **Pro Access Required.** Please enter your access code in the sidebar to unlock TCT Lens and Palayan AI.")
+    else:
+        tct_tab, ai_tab = st.tabs(["📄 TCT Lens", "🌾 Palayan AI"])
         
-        if leaf is not None:
-            st.image(leaf, width=200)
-            if st.button("🔍 Run Palayan AI Scan"):
-                with st.spinner("Analyzing leaf..."):
-                    try:
-                        image_bytes = leaf.read()
-                        base64_image = base64.b64encode(image_bytes).decode('utf-8')
-                        
-                        client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                        
-                        prompt = "You are Palayan AI. Analyze this rice leaf. Identify diseases or pests. Rate severity 1-10. Give a short action plan."
-                        
-                        response = client.chat.completions.create(
-                            model="gpt-4o",
-                            messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
-                            max_tokens=300
-                        )
-                        st.success("✅ Analysis Complete!")
-                        st.markdown(response.choices[0].message.content)
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+        with tct_tab:
+            st.write("Upload TCT to verify boundaries.")
+            tct_files = st.file_uploader("Upload TCT PDFs", accept_multiple_files=True)
+            if tct_files:
+                st.success(f"✅ {len(tct_files)} TCTs uploaded!")
+                st.info("🟢 **Verified - Geotag OK** (Demo)")
+                
+        with ai_tab:
+            st.write("Scan rice leaves for disease.")
+            leaf = st.file_uploader("Upload Rice Leaf Image", type=["jpg", "png"])
+            
+            if leaf is not None:
+                st.image(leaf, width=200)
+                if st.button("🔍 Run Palayan AI Scan"):
+                    with st.spinner("Analyzing leaf..."):
+                        try:
+                            image_bytes = leaf.read()
+                            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+                            
+                            client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                            
+                            prompt = "You are Palayan AI. Analyze this rice leaf. Identify diseases or pests. Rate severity 1-10. Give a short action plan."
+                            
+                            response = client.chat.completions.create(
+                                model="gpt-4o",
+                                messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
+                                max_tokens=300
+                            )
+                            st.success("✅ Analysis Complete!")
+                            st.markdown(response.choices[0].message.content)
+                        except Exception as e:
+                            st.error(f"Error: {e}")
 
 st.divider()
 
 # --- FOOTER ---
-col_up1, col_up2, col_up3 = st.columns([1, 2, 1])
-with col_up2:
-    st.link_button("🔓 Unlock Pro (P499/mo) via GCash", "https://forms.gle/MMsz9Bj8t7pBhTGA", use_container_width=True)
+st.markdown("<p style='text-align: center; color: gray; font-size: 12px;'>Palayan AI Labs • Division of JG Climate Law</p>", unsafe_allow_html=True)
