@@ -1,7 +1,7 @@
 import streamlit as st
 import openai
 import base64
-import io
+import re
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="CarbonSee.app", page_icon="🌱", layout="wide")
@@ -106,11 +106,9 @@ with tab_carbon:
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
-            # REPLACE WITH YOUR ACTUAL LAND SUBMISSION FORM LINK
             st.link_button("🤝 Submit Land for Aggregation", "https://forms.gle/YOUR_NEW_LAND_FORM_LINK", use_container_width=True)
             
         with col_btn2:
-            # REPLACE WITH YOUR ACTUAL VIBER LINK
             st.link_button("💬 Talk to Atty. Grace", "https://viber.me/YOUR_VIBER_LINK", use_container_width=True)
             
         st.info("💡 **Tip:** Want a bankable report to show to a solar developer? Upgrade to Pro to download the official PDF.")
@@ -155,15 +153,15 @@ with tab_pro:
     else:
         tct_tab, ai_tab = st.tabs(["📄 TCT Lens", "🌾 Palayan AI"])
         
-        # --- TCT LENS ---
+        # --- TCT LENS (WITH CARBON SYNERGY) ---
         with tct_tab:
-            st.write("Upload TCT to extract owner, title number, area, and encumbrances.")
+            st.write("Upload TCT to extract legal data and calculate Carbon Potential.")
             tct_file = st.file_uploader("Upload TCT Image (JPG/PNG)", type=["jpg", "png"])
             
             if tct_file is not None:
                 st.image(tct_file, width=300, caption="Uploaded TCT")
                 if st.button("🔍 Run TCT Lens Analysis"):
-                    with st.spinner("Reading Title..."):
+                    with st.spinner("Reading Title and calculating value..."):
                         try:
                             image_bytes = tct_file.read()
                             base64_image = base64.b64encode(image_bytes).decode('utf-8')
@@ -171,8 +169,10 @@ with tab_pro:
                             
                             prompt = """
                             You are a meticulous Philippine Legal Engineer. Analyze this Transfer Certificate of Title (TCT).
-                            Extract: 1. TCT Number, 2. Registered Owner(s), 3. Total Area, 4. Location (Lot, Barangay, Municipality), 5. Encumbrances / Annotations.
+                            Extract: 1. TCT Number, 2. Registered Owner(s), 3. Total Area in hectares (convert sqm to hectares if needed), 4. Location (Lot, Barangay, Municipality), 5. Encumbrances / Annotations.
                             If a field is blurry or missing, state "Not clearly readable". Use Markdown to format beautifully.
+                            At the very end of your response, you MUST output ONLY the numerical area in hectares formatted exactly like this: [AREA_HA: X.XX]
+                            If you cannot read the area, output [AREA_HA: 0].
                             """
                             
                             response = client.chat.completions.create(
@@ -180,8 +180,31 @@ with tab_pro:
                                 messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
                                 max_tokens=500
                             )
+                            
+                            result_text = response.choices[0].message.content
                             st.success("✅ Analysis Complete!")
-                            st.markdown(response.choices[0].message.content)
+                            st.markdown(result_text)
+                            
+                            # Extract area and calculate carbon
+                            area_match = re.search(r'\[AREA_HA:\s*([\d\.]+)\]', result_text)
+                            
+                            if area_match:
+                                extracted_area = float(area_match.group(1))
+                                if extracted_area > 0:
+                                    base_credits = 2.5
+                                    price_php = 1200
+                                    annual_val = extracted_area * base_credits * price_php
+                                    total_30yr = annual_val * 30
+                                    
+                                    st.divider()
+                                    st.info(f"🌱 **Carbon Potential Found!** Based on the title area of **{extracted_area} hectares**, this land could generate an estimated **₱{total_30yr:,.0f}** over 30 years in carbon credits.")
+                                    
+                                    if not st.session_state.is_pro:
+                                        st.warning("🔒 Upgrade to Pro to download the full legal and financial report.")
+                                    else:
+                                        report_text = f"CARBONSEE TCT REPORT\nArea: {extracted_area} ha\n30-Yr Carbon Value: PHP {total_30yr:,.0f}"
+                                        st.download_button("📥 Download Full TCT & Carbon Report", data=report_text, file_name="TCT_Carbon_Report.txt")
+                                    
                         except Exception as e:
                             st.error(f"Error: {e}")
                             
