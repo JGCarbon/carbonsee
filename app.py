@@ -167,9 +167,9 @@ with tab_carbon:
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
-            st.link_button("🤝 Submit Land for Aggregation", "https://forms.gle/YOUR_NEW_LAND_FORM_LINK", use_container_width=True)
+            st.link_button("🤝 Submit Land for Aggregation", "https://forms.gle/3Qo9ZgM2gMsa3jGG9", use_container_width=True)
         with col_btn2:
-            st.link_button("💬 Talk to Atty. Grace", "https://viber.me/YOUR_VIBER_LINK", use_container_width=True)
+            st.link_button("💬 Talk to Atty. Grace", "https://viber.me/639171781158", use_container_width=True)
             
         st.info("💡 **Tip:** Want a bankable report to show to a solar developer? Upgrade to Pro to download the official PDF.")
 
