@@ -23,7 +23,7 @@ st.markdown("""
 if 'is_pro' not in st.session_state:
     st.session_state.is_pro = False
 
-# --- SIDEBAR ---
+# --- SIDEBAR (PRO LOGIN & GCASH) ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3302/3302758.png", width=100) 
     st.header("Pro Access")
@@ -39,7 +39,7 @@ with st.sidebar:
         
         st.markdown("---")
         st.write("**Upgrade to Pro (P499/mo)**")
-        st.write("Get unlimited PDF reports, TCT checks, and AI scans.")
+        st.write("Unlock TCT Lens (Title Verification) and Downloadable PDF Reports for banks and developers.")
         st.link_button("🔓 Pay via GCash", "https://forms.gle/MMsz9Bj8t7pBhTGA", use_container_width=True)
     else:
         st.success("🌟 Pro Version Active")
@@ -50,19 +50,80 @@ with st.sidebar:
 # --- HEADER ---
 st.title("🌱 CARBONSEE.app")
 st.markdown("**Climate Law & Legal Engineering • JG Climate Law**")
-st.success("🎉 **FIRST BATCH LAUNCH** - Free Testing until Nov 5!")
+st.success("🎉 **FIRST BATCH LAUNCH** - Palayan AI is now FREE for Farmers!")
 
 st.divider()
 
-# --- MAIN TABS ---
-tab_carbon, tab_solar, tab_pro = st.tabs([
+# --- MAIN TABS (REORDERED FOR FARMERS) ---
+tab_farmer, tab_carbon, tab_solar, tab_pro = st.tabs([
+    "🌾 Palayan AI (Free)", 
     "🌱 Carbon Calculator", 
-    "☀️ Solar Lease Calculator", 
-    "💼 Pro Tools (TCT & AI)"
+    "☀️ Solar Calculator", 
+    "📄 TCT Lens (Pro)"
 ])
 
 # ==========================================
-# TAB 1: CARBON CALCULATOR
+# TAB 1: PALAYAN AI (100% FREE FOR FARMERS)
+# ==========================================
+with tab_farmer:
+    st.subheader("Palayan AI: From Pains to Grains")
+    st.write("Libreng AI para sa mga magsasaka. I-scan ang dahon, butil, o insekto para sa agarang lunas.")
+    
+    st.info("⚠️ **PAALALA:** Para sa tumpak na resulta, mag-upload ng malinaw at malapit na litrato (close-up). Iwasan ang malawak na tanawin.")
+    
+    analysis_type = st.selectbox(
+        "Ano ang gusto mong i-check? (What do you want to check?)",
+        [
+            "🌾 Sakit at Peste sa Dahon (Leaf Disease & Pest)",
+            "🍚 Handa na ba Anihin? (Harvest Readiness - Grains)",
+            "🐛 Anong Insekto Ito? (Insect Identification)"
+        ]
+    )
+    
+    leaf = st.file_uploader("Upload Image here (JPG/PNG)", type=["jpg", "png"], key="leaf_free")
+    
+    if leaf is not None:
+        st.image(leaf, width=300, caption="Uploaded Image")
+        if st.button("🔍 Run Palayan AI Scan (Free)"):
+            with st.spinner("Sinusuri ng Palayan AI..."):
+                try:
+                    image_bytes = leaf.read()
+                    base64_image = base64.b64encode(image_bytes).decode('utf-8')
+                    client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                    
+                    if "Sakit" in analysis_type:
+                        prompt = "You are Palayan AI. Look closely at this single leaf. Identify the specific disease or pest. Rate severity 1-10. Provide a simple, actionable treatment plan. Speak directly to the farmer in a mix of Tagalog and English."
+                    elif "Harvest" in analysis_type:
+                        prompt = "You are Palayan AI. Look at the rice grains in this image. Determine harvest readiness. Are they golden and ready, or still too green? Give a clear recommendation (e.g., 'Hintayin pa ng X days' or 'Pwede nang anihin'). Speak directly to the farmer in Taglish."
+                    else:
+                        prompt = "You are Palayan AI. Identify the insect in this image. Tell the farmer if it is a pest or beneficial. If it's a pest, provide a safe way to eliminate it. Speak directly to the farmer in Taglish."
+
+                    response = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
+                        max_tokens=400
+                    )
+                    st.success("✅ Analysis Complete!")
+                    st.markdown(response.choices[0].message.content)
+                except Exception as e:
+                    st.error(f"Error: {e}")
+                    
+    st.divider()
+    st.write("**Ask Palayan AI about planting schedules:**")
+    question = st.text_input("Halimbawa: Kailan magandang magtanim ng palay ngayong tag-ulan?")
+    if st.button("Ask Palayan AI (Free)"):
+        if question:
+            with st.spinner("Nag-iisip..."):
+                client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": [{"type": "text", "text": f"You are Palayan AI. Answer this farmer's question clearly and briefly in Taglish: {question}"}]}],
+                    max_tokens=300
+                )
+                st.info(response.choices[0].message.content)
+
+# ==========================================
+# TAB 2: CARBON CALCULATOR
 # ==========================================
 with tab_carbon:
     st.subheader("Carbon Credit Projection")
@@ -106,17 +167,14 @@ with tab_carbon:
         col_btn1, col_btn2 = st.columns(2)
         
         with col_btn1:
-            # Replace with your actual Land Submission Google Form
             st.link_button("🤝 Submit Land for Aggregation", "https://forms.gle/YOUR_NEW_LAND_FORM_LINK", use_container_width=True)
-            
         with col_btn2:
-            # Replace with your actual Viber Chat Link
             st.link_button("💬 Talk to Atty. Grace", "https://viber.me/YOUR_VIBER_LINK", use_container_width=True)
             
         st.info("💡 **Tip:** Want a bankable report to show to a solar developer? Upgrade to Pro to download the official PDF.")
 
 # ==========================================
-# TAB 2: SOLAR LEASE CALCULATOR
+# TAB 3: SOLAR LEASE CALCULATOR
 # ==========================================
 with tab_solar:
     st.subheader("Solar Lease Calculator")
@@ -145,135 +203,71 @@ with tab_solar:
             st.metric("Total Guaranteed Baseline", f"₱{total_baseline:,.0f}")
 
 # ==========================================
-# TAB 3: PRO TOOLS
+# TAB 4: TCT LENS (PRO ONLY)
 # ==========================================
 with tab_pro:
-    st.subheader("Pro Tools Dashboard")
+    st.subheader("TCT Lens (Pro Tool)")
     
     if not st.session_state.is_pro:
-        st.warning("🔒 **Pro Access Required.** Please enter your access code in the sidebar to unlock TCT Lens and Palayan AI.")
+        st.warning("🔒 **Pro Access Required.** Please enter your access code in the sidebar to unlock TCT Lens.")
     else:
-        tct_tab, ai_tab = st.tabs(["📄 TCT Lens", "🌾 Palayan AI"])
+        st.write("Upload TCT to extract legal data and calculate Carbon Potential.")
+        tct_file = st.file_uploader("Upload TCT Image (JPG/PNG)", type=["jpg", "png"], key="tct_pro")
         
-        # --- TCT LENS (WITH MANUAL FALLBACK) ---
-        with tct_tab:
-            st.write("Upload TCT to extract legal data and calculate Carbon Potential.")
-            tct_file = st.file_uploader("Upload TCT Image (JPG/PNG)", type=["jpg", "png"])
-            
-            if tct_file is not None:
-                st.image(tct_file, width=300, caption="Uploaded TCT")
-                if st.button("🔍 Run TCT Lens Analysis"):
-                    with st.spinner("Reading Title and calculating value..."):
-                        try:
-                            image_bytes = tct_file.read()
-                            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-                            client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                            
-                            prompt = """
-                            You are a meticulous Philippine Legal Engineer. Analyze this Transfer Certificate of Title (TCT).
-                            Extract: 1. TCT Number, 2. Registered Owner(s), 3. Total Area in hectares (convert sqm to hectares if needed), 4. Location (Lot, Barangay, Municipality), 5. Encumbrances / Annotations.
-                            If a field is blurry or missing, state "Not clearly readable". Use Markdown to format beautifully.
-                            At the very end of your response, you MUST output ONLY the numerical area in hectares formatted exactly like this: [AREA_HA: X.XX]
-                            If you cannot read the area, output [AREA_HA: 0].
-                            """
-                            
-                            response = client.chat.completions.create(
-                                model="gpt-4o",
-                                messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
-                                max_tokens=500
-                            )
-                            
-                            result_text = response.choices[0].message.content
-                            st.success("✅ Analysis Complete!")
-                            st.markdown(result_text)
-                            
-                            # Extract area
-                            area_match = re.search(r'\[AREA_HA:\s*([\d\.]+)\]', result_text)
-                            extracted_area = float(area_match.group(1)) if area_match else 0.0
-                            
-                            st.divider()
-                            
-                            # --- MANUAL FALLBACK LOGIC ---
-                            final_area = extracted_area
-                            
-                            if extracted_area == 0:
-                                st.warning("⚠️ **AI could not read the land area clearly.** Please type the area manually below to calculate the carbon potential.")
-                                manual_area = st.number_input("Enter Area (Hectares) manually:", min_value=0.1, value=1.0, step=0.1)
-                                final_area = manual_area
-                            
-                            if final_area > 0:
-                                base_credits = 2.5
-                                price_php = 1200
-                                annual_val = final_area * base_credits * price_php
-                                total_30yr = annual_val * 30
-                                
-                                st.info(f"🌱 **Carbon Potential Found!** Based on an area of **{final_area} hectares**, this land could generate an estimated **₱{total_30yr:,.0f}** over 30 years in carbon credits.")
-                                
-                                if not st.session_state.is_pro:
-                                    st.warning("🔒 Upgrade to Pro to download the full legal and financial report.")
-                                else:
-                                    report_text = f"CARBONSEE TCT REPORT\nArea: {final_area} ha\n30-Yr Carbon Value: PHP {total_30yr:,.0f}"
-                                    st.download_button("📥 Download Full TCT & Carbon Report", data=report_text, file_name="TCT_Carbon_Report.txt")
-                                    
-                        except Exception as e:
-                            st.error(f"Error: {e}")
-                            
-        # --- PALAYAN AI v2.0 ---
-        with ai_tab:
-            st.info("⚠️ **PAALALA:** Para sa tumpak na resulta, mag-upload ng malinaw at malapit na litrato (close-up). Iwasan ang pag-upload ng malawak na tanawin ng bukid.")
-            
-            analysis_type = st.selectbox(
-                "Ano ang gusto mong i-check? (What do you want to check?)",
-                [
-                    "🌾 Sakit at Peste sa Dahon (Leaf Disease & Pest)",
-                    "🍚 Handa na ba Anihin? (Harvest Readiness - Grains)",
-                    "🐛 Anong Insekto Ito? (Insect Identification)"
-                ]
-            )
-            
-            leaf = st.file_uploader("Upload Image here (JPG/PNG)", type=["jpg", "png"])
-            
-            if leaf is not None:
-                st.image(leaf, width=300, caption="Uploaded Image")
-                if st.button("🔍 Run Palayan AI Scan"):
-                    with st.spinner("Sinusuri ng Palayan AI..."):
-                        try:
-                            image_bytes = leaf.read()
-                            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-                            client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                            
-                            if "Sakit" in analysis_type:
-                                prompt = "You are Palayan AI. Look closely at this single leaf. Identify the specific disease or pest. Rate severity 1-10. Provide a simple, actionable treatment plan. Speak directly to the farmer in a mix of Tagalog and English."
-                            elif "Harvest" in analysis_type:
-                                prompt = "You are Palayan AI. Look at the rice grains in this image. Determine harvest readiness. Are they golden and ready, or still too green? Give a clear recommendation (e.g., 'Hintayin pa ng X days' or 'Pwede nang anihin'). Speak directly to the farmer in Taglish."
-                            else:
-                                prompt = "You are Palayan AI. Identify the insect in this image. Tell the farmer if it is a pest or beneficial. If it's a pest, provide a safe way to eliminate it. Speak directly to the farmer in Taglish."
-
-                            response = client.chat.completions.create(
-                                model="gpt-4o",
-                                messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
-                                max_tokens=400
-                            )
-                            st.success("✅ Analysis Complete!")
-                            st.markdown(response.choices[0].message.content)
-                        except Exception as e:
-                            st.error(f"Error: {e}")
-            
-            st.divider()
-            
-            # Text Advisory for Planting
-            st.write("**Ask Palayan AI about planting schedules:**")
-            question = st.text_input("Halimbawa: Kailan magandang magtanim ng palay ngayong tag-ulan?")
-            if st.button("Ask Palayan AI"):
-                if question:
-                    with st.spinner("Nag-iisip..."):
+        if tct_file is not None:
+            st.image(tct_file, width=300, caption="Uploaded TCT")
+            if st.button("🔍 Run TCT Lens Analysis"):
+                with st.spinner("Reading Title and calculating value..."):
+                    try:
+                        image_bytes = tct_file.read()
+                        base64_image = base64.b64encode(image_bytes).decode('utf-8')
                         client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                        
+                        prompt = """
+                        You are a meticulous Philippine Legal Engineer. Analyze this Transfer Certificate of Title (TCT).
+                        Extract: 1. TCT Number, 2. Registered Owner(s), 3. Total Area in hectares (convert sqm to hectares if needed), 4. Location (Lot, Barangay, Municipality), 5. Encumbrances / Annotations.
+                        If a field is blurry or missing, state "Not clearly readable". Use Markdown to format beautifully.
+                        At the very end of your response, you MUST output ONLY the numerical area in hectares formatted exactly like this: [AREA_HA: X.XX]
+                        If you cannot read the area, output [AREA_HA: 0].
+                        """
+                        
                         response = client.chat.completions.create(
                             model="gpt-4o",
-                            messages=[{"role": "user", "content": [{"type": "text", "text": f"You are Palayan AI. Answer this farmer's question clearly and briefly in Taglish (Tagalog/English): {question}"}]}],
-                            max_tokens=300
+                            messages=[{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}]}],
+                            max_tokens=500
                         )
-                        st.info(response.choices[0].message.content)
+                        
+                        result_text = response.choices[0].message.content
+                        st.success("✅ Analysis Complete!")
+                        st.markdown(result_text)
+                        
+                        # Extract area
+                        area_match = re.search(r'\[AREA_HA:\s*([\d\.]+)\]', result_text)
+                        extracted_area = float(area_match.group(1)) if area_match else 0.0
+                        
+                        st.divider()
+                        
+                        # --- MANUAL FALLBACK LOGIC ---
+                        final_area = extracted_area
+                        
+                        if extracted_area == 0:
+                            st.warning("⚠️ **AI could not read the land area clearly.** Please type the area manually below to calculate the carbon potential.")
+                            manual_area = st.number_input("Enter Area (Hectares) manually:", min_value=0.1, value=1.0, step=0.1)
+                            final_area = manual_area
+                        
+                        if final_area > 0:
+                            base_credits = 2.5
+                            price_php = 1200
+                            annual_val = final_area * base_credits * price_php
+                            total_30yr = annual_val * 30
+                            
+                            st.info(f"🌱 **Carbon Potential Found!** Based on an area of **{final_area} hectares**, this land could generate an estimated **₱{total_30yr:,.0f}** over 30 years in carbon credits.")
+                            
+                            report_text = f"CARBONSEE TCT REPORT\nArea: {final_area} ha\n30-Yr Carbon Value: PHP {total_30yr:,.0f}"
+                            st.download_button("📥 Download Full TCT & Carbon Report", data=report_text, file_name="TCT_Carbon_Report.txt")
+                                
+                    except Exception as e:
+                        st.error(f"Error: {e}")
 
 st.divider()
 st.markdown("<p style='text-align: center; color: gray; font-size: 12px;'>Palayan AI Labs • Division of JG Climate Law</p>", unsafe_allow_html=True)
