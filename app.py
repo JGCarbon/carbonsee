@@ -269,5 +269,12 @@ with tab_pro:
                     except Exception as e:
                         st.error(f"Error: {e}")
 
+# --- LEGAL DISCLAIMER FOOTER ---
 st.divider()
-st.markdown("<p style='text-align: center; color: gray; font-size: 12px;'>Palayan AI Labs • Division of JG Climate Law</p>", unsafe_allow_html=True)
+st.markdown("""
+<div style='text-align: center; color: gray; font-size: 11px; padding: 10px;'>
+    <b>Disclaimer:</b> The calculations and AI analyses provided by Carbonsee.app and Palayan AI are for preliminary estimation and informational purposes only. They do not constitute official legal, financial, or agronomic advice. <br>
+    All data collected through this platform is processed in strict compliance with the <b>Data Privacy Act of 2012 (RA 10173)</b>.<br>
+    <b>Palayan AI Labs</b> • A Division of <b>JG Climate Law</b>
+</div>
+""", unsafe_allow_html=True)
